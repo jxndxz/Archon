@@ -1,7 +1,19 @@
 import { NavLink, Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { LayoutDashboard, MessageSquare, Workflow, Settings } from 'lucide-react';
-import { listWorkflowRuns, getUpdateCheck } from '@/lib/api';
+import {
+  LayoutDashboard,
+  MessageSquare,
+  Workflow,
+  Settings,
+  Volume2,
+  Radio,
+  PenLine,
+  Globe,
+  HeartPulse,
+  GraduationCap,
+  Share2,
+} from 'lucide-react';
+import { listDashboardRuns, getUpdateCheck } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 const tabs = [
@@ -9,15 +21,25 @@ const tabs = [
   { to: '/dashboard', end: true, icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/workflows', end: false, icon: Workflow, label: 'Workflows' },
   { to: '/settings', end: false, icon: Settings, label: 'Settings' },
+  { to: '/tts', end: false, icon: Volume2, label: 'TTS' },
+  { to: '/brt', end: false, icon: Radio, label: 'BRT' },
+  { to: '/sg-ink', end: false, icon: PenLine, label: 'SG INK' },
+  { to: '/naba', end: false, icon: Globe, label: 'NABA' },
+  { to: '/ihht', end: false, icon: HeartPulse, label: 'IHHT' },
+  { to: '/qep', end: false, icon: GraduationCap, label: 'QEP' },
+  { to: '/social-content', end: false, icon: Share2, label: 'Social Content' },
 ] as const;
 
 export function TopNav(): React.ReactElement {
-  const { data: runningRuns } = useQuery({
-    queryKey: ['workflowRuns', { status: 'running' }],
-    queryFn: () => listWorkflowRuns({ status: 'running', limit: 1 }),
+  // We only need `counts.running` — a server-side aggregate independent of
+  // the `runs` array. `limit: 1` minimises the `runs` payload that the API
+  // returns alongside the counts (we discard it).
+  const { data: dashboardRuns } = useQuery({
+    queryKey: ['dashboardRuns', { status: 'running', forCount: true }],
+    queryFn: () => listDashboardRuns({ status: 'running', limit: 1 }),
     refetchInterval: 10_000,
   });
-  const hasRunning = (runningRuns?.length ?? 0) > 0;
+  const runningCount = dashboardRuns?.counts.running ?? 0;
 
   const { data: updateCheck } = useQuery({
     queryKey: ['update-check'],
@@ -32,9 +54,14 @@ export function TopNav(): React.ReactElement {
       {/* Brand logo */}
       <Link to="/chat" className="flex items-center gap-2 mr-4 hover:opacity-80 transition-opacity">
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-          <span className="text-sm font-semibold text-primary-foreground">A</span>
+          <span className="text-sm font-semibold text-primary-foreground">P</span>
         </div>
-        <span className="text-sm font-semibold text-text-primary">Archon</span>
+        <span
+          className="text-sm font-semibold text-text-primary"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          PMC
+        </span>
       </Link>
 
       {tabs.map(({ to, end, icon: Icon, label }) => (
@@ -53,8 +80,13 @@ export function TopNav(): React.ReactElement {
         >
           <Icon className="h-4 w-4" />
           {label}
-          {to === '/dashboard' && hasRunning && (
-            <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
+          {to === '/dashboard' && runningCount > 0 && (
+            <span
+              className="ml-1 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground"
+              aria-label={`${runningCount} workflows running`}
+            >
+              {runningCount}
+            </span>
           )}
         </NavLink>
       ))}
